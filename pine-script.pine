@@ -1,0 +1,43 @@
+//@version=5
+strategy("Webhook Alert Strategy", overlay=true, initial_capital=10000, default_qty_type=strategy.percent_of_equity, default_qty_value=10)
+
+// Inputs
+fastLength = input.int(12, "Fast EMA")
+slowLength = input.int(26, "Slow EMA")
+riskPercent = input.float(1.0, "Risk % per trade")
+leverage = input.int(1, "Leverage")
+webhookUrl = input.string("https://your-server.com/webhook", "Webhook URL")
+webhookSecret = input.string("", "Webhook Secret")
+
+// Indicators
+fastEMA = ta.ema(close, fastLength)
+slowEMA = ta.ema(close, slowLength)
+
+// Signals
+longCondition = ta.crossover(fastEMA, slowEMA)
+shortCondition = ta.crossunder(fastEMA, slowEMA)
+
+// Stop loss and take profit
+atr = ta.atr(14)
+longStop = close - (atr * 2)
+longTP = close + (atr * 3)
+shortStop = close + (atr * 2)
+shortTP = close - (atr * 3)
+
+// Webhook payload
+buildPayload(action, entry, sl, tp) =>
+    '{"ticker":"' + syminfo.ticker + '","action":"' + action + '","price":' + str.tostring(entry) + ',"stopLoss":' + str.tostring(sl) + ',"takeProfit":' + str.tostring(tp) + ',"riskPercent":' + str.tostring(riskPercent) + ',"leverage":' + str.tostring(leverage) + '}'
+
+// Alerts
+if longCondition
+    alert(buildPayload("buy", close, longStop, longTP), alert.freq_once_per_bar_close)
+    strategy.entry("Long", strategy.long)
+    strategy.exit("Long Exit", "Long", stop=longStop, limit=longTP)
+
+if shortCondition
+    alert(buildPayload("sell", close, shortStop, shortTP), alert.freq_once_per_bar_close)
+    strategy.entry("Short", strategy.short)
+    strategy.exit("Short Exit", "Short", stop=shortStop, limit=shortTP)
+
+plot(fastEMA, color=color.new(color.blue, 0), title="Fast EMA")
+plot(slowEMA, color=color.new(color.orange, 0), title="Slow EMA")

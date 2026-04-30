@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: tradingview-webhook-server
+    runtime: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: WEBHOOK_SECRET
+        generateValue: true
+      - key: PAPER_TRADING
+        value: true
