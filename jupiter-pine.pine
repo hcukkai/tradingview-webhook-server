@@ -1,0 +1,31 @@
+//@version=5
+strategy("Jupiter Solana Bridge", overlay=true, default_qty_type=strategy.percent_of_equity, default_qty_value=100)
+
+// Config
+webhookUrl = input.string("https://your-server.com/jupiter/swap", "Webhook URL")
+webhookSecret = input.string("your-secret", "Webhook Secret")
+
+// Token addresses (Solana mainnet)
+tokenIn = input.string("So11111111111111111111111111111111111111112", "Token In (SOL)")
+tokenOut = input.string("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "Token Out (USDC)")
+amount = input.string("1000000000", "Amount (lamports/raw)") // 1 SOL = 1e9 lamports
+slippage = input.int(50, "Slippage (bps)", minval=10, maxval=1000)
+
+// Entry conditions
+longCondition = ta.crossover(ta.sma(close, 14), ta.sma(close, 28))
+shortCondition = ta.crossunder(ta.sma(close, 14), ta.sma(close, 28))
+
+// Build payload
+buildPayload(action) =>
+    '{"ticker":"' + syminfo.ticker + '","token_in":"' + tokenIn + '","token_out":"' + tokenOut + '","amount":"' + amount + '","slippage":' + str.tostring(slippage) + ',"action":"' + action + '"}'
+
+// Send alerts
+if longCondition
+    alert(buildPayload("buy"), alert.freq_once_per_bar_close)
+
+if shortCondition
+    alert(buildPayload("sell"), alert.freq_once_per_bar_close)
+
+// Plot
+plot(ta.sma(close, 14), color=color.new(color.blue, 0), title="SMA14")
+plot(ta.sma(close, 28), color=color.new(color.orange, 0), title="SMA28")
