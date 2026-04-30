@@ -9,7 +9,7 @@ class JupiterClient {
   }
 
   async getQuote({ inputMint, outputMint, amount, slippageBps = 50, onlyDirectRoutes = false }) {
-    const { data } = await axios.get(`${JUPITER_BASE}/swap/v2/quote`, {
+    const { data } = await axios.get(`${JUPITER_BASE}/swap/v1/quote`, {
       headers: this.headers,
       params: {
         inputMint,
@@ -23,12 +23,13 @@ class JupiterClient {
   }
 
   async buildSwap({ quoteResponse, userPublicKey, wrapAndUnwrapSol = true, prioritizationFeeLamports }) {
-    const { data } = await axios.post(`${JUPITER_BASE}/swap/v2/build`, {
+    const body = {
       quoteResponse,
       userPublicKey,
-      wrapAndUnwrapSol,
-      prioritizationFeeLamports
-    }, { headers: this.headers });
+      wrapAndUnwrapSol
+    };
+    if (prioritizationFeeLamports) body.prioritizationFeeLamports = prioritizationFeeLamports;
+    const { data } = await axios.post(`${JUPITER_BASE}/swap/v1/swap`, body, { headers: this.headers });
     return data;
   }
 
@@ -61,12 +62,14 @@ class JupiterClient {
     return data;
   }
 
-  async getPrice(mint) {
-    const { data } = await axios.get(`${JUPITER_BASE}/price/v2`, {
+  async getPrice(mint, vsMint = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v') {
+    const amount = '1000000000'; // 1 SOL in lamports
+    const { data } = await axios.get(`${JUPITER_BASE}/swap/v1/quote`, {
       headers: this.headers,
-      params: { ids: mint }
+      params: { inputMint: mint, outputMint: vsMint, amount, slippageBps: 50 }
     });
-    return data.data[mint];
+    const price = parseFloat(data.outAmount) / parseFloat(data.inAmount);
+    return { price, vsToken: vsMint, raw: data };
   }
 
   async getTokenInfo(mint) {

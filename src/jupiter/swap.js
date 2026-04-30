@@ -45,8 +45,10 @@ class JupiterSwap {
       prioritizationFeeLamports: 'auto'
     });
 
-    // 3. Deserialize and sign
-    const txBuffer = Buffer.from(swapData.transaction, 'base64');
+    // 3. Deserialize and sign (v1 API returns swapTransaction)
+    const txBase64 = swapData.swapTransaction || swapData.transaction;
+    if (!txBase64) throw new Error('No transaction returned from Jupiter');
+    const txBuffer = Buffer.from(txBase64, 'base64');
     const transaction = VersionedTransaction.deserialize(txBuffer);
     transaction.sign([this.keypair]);
 
